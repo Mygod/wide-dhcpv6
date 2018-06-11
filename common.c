@@ -86,7 +86,7 @@
 #include <common.h>
 #include <timer.h>
 
-#ifdef __linux__
+#if defined(__linux__) && !defined(__ANDROID__)
 /* from /usr/include/linux/ipv6.h */
 
 struct in6_ifreq {
@@ -629,6 +629,7 @@ copy_authparam(authparam)
  * Home-brew function of a 64-bit version of ntohl.
  * XXX: is there any standard for this?
  */
+#ifndef __ANDROID__
 #if (BYTE_ORDER == LITTLE_ENDIAN)
 static __inline u_int64_t
 ntohq(u_int64_t x)
@@ -638,6 +639,7 @@ ntohq(u_int64_t x)
 }
 #else	/* (BYTE_ORDER == LITTLE_ENDIAN) */
 #define ntohq(x) (x)
+#endif
 #endif
 
 int

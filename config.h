@@ -29,6 +29,10 @@
  * SUCH DAMAGE.
  */
 
+#ifdef __ANDROID__
+#include <sys/time.h>
+#endif
+
 /* definitions of tail-queue types */
 TAILQ_HEAD(ia_conflist, ia_conf);
 TAILQ_HEAD(pifc_list, prefix_ifconf);

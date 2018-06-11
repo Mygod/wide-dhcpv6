@@ -44,7 +44,11 @@
 #ifdef HAVE_STDARG_H
 #include <stdarg.h>
 #else
+#ifdef __ANDROID__
+#include <stdarg.h>
+#else
 #include <varargs.h>
+#endif
 #endif
 
 #include "dhcp6.h"
