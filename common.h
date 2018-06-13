@@ -217,3 +217,6 @@ extern size_t strlcpy __P((char *, const char *, size_t));
 #  endif
 #endif
 
+#ifdef __ANDROID__
+#include "debug.h"
+#endif
