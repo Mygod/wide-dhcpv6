@@ -78,7 +78,11 @@ ifinit(ifname)
 	}
 
 	if (ifreset(ifp))
+#ifdef __ANDROID__
+        ;
+#else
 		goto fail;
+#endif
 
 	TAILQ_INIT(&ifp->reqopt_list);
 	TAILQ_INIT(&ifp->iaconf_list);

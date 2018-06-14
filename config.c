@@ -158,7 +158,9 @@ configure_interface(iflist)
 		if (if_nametoindex(ifp->name) == 0) {
 			dprintf(LOG_ERR, FNAME, "invalid interface(%s): %s",
 			    ifp->name, strerror(errno));
+#ifndef __ANDROID__
 			goto bad;
+#endif
 		}
 
 		if ((ifc = malloc(sizeof(*ifc))) == NULL) {
