@@ -104,7 +104,7 @@ static char *pid_file = DHCP6C_PIDFILE;
 
 static char *ctlkeyfile = DEFAULT_KEYFILE;
 static struct keyinfo *ctlkey = NULL;
-static int ctldigestlen;
+static int ctldigestlen = 0;
 
 static int infreq_mode = 0;
 
@@ -265,11 +265,13 @@ client6_init()
 		exit(1);
 	}
 
+#ifndef __ANDROID__
 	if (dhcp6_ctl_authinit(ctlkeyfile, &ctlkey, &ctldigestlen) != 0) {
 		dprintf(LOG_NOTICE, FNAME,
 		    "failed initialize control message authentication");
 		/* run the server anyway */
 	}
+#endif
 
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = PF_INET6;
@@ -359,7 +361,11 @@ client6_init()
 	freeaddrinfo(res);
 
 	/* set up control socket */
+#ifdef __ANDROID__
+	if (0)
+#else
 	if (ctlkey == NULL)
+#endif
 		dprintf(LOG_NOTICE, FNAME, "skip opening control port");
 	else if (dhcp6_ctl_init(ctladdr, ctlport,
 	    DHCP6CTL_DEF_COMMANDQUEUELEN, &ctlsock)) {
@@ -646,6 +652,7 @@ client6_do_ctlcommand(buf, len)
 		return (DHCP6CTL_R_FAILURE);
 	}
 
+#ifndef __ANDROID__
 	if (ctlkey == NULL) {	/* should not happen!! */
 		dprintf(LOG_ERR, FNAME, "no secret key for control channel");
 		return (DHCP6CTL_R_FAILURE);
@@ -655,6 +662,7 @@ client6_do_ctlcommand(buf, len)
 		dprintf(LOG_INFO, FNAME, "authentication failure");
 		return (DHCP6CTL_R_FAILURE);
 	}
+#endif
 
 	bp = buf + sizeof(*ctlhead) + ctldigestlen;
 	commandlen -= ctldigestlen;

@@ -45,6 +45,12 @@
 
 #include <netinet/in.h>
 
+#ifdef __ANDROID__
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/un.h>
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -82,6 +88,10 @@ dhcp6_ctl_init(addr, port, max, sockp)
 	char *addr, *port;
 	int max, *sockp;
 {
+#ifdef __ANDROID__
+	unlink("control");
+	int ctlsock = socket(AF_UNIX, SOCK_STREAM, 0);
+#else
 	struct addrinfo hints, *res = NULL;
 	int on;
 	int error;
@@ -98,11 +108,19 @@ dhcp6_ctl_init(addr, port, max, sockp)
 		return (-1);
 	}
 	ctlsock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+#endif
 	if (ctlsock < 0) {
 		dprintf(LOG_ERR, FNAME, "socket(control sock): %s",
 		    strerror(errno));
 		goto fail;
 	}
+#ifdef __ANDROID__
+	struct sockaddr_un saddr;
+	memset(&saddr, 0, sizeof(saddr));
+	saddr.sun_family = AF_UNIX;
+	strncpy(saddr.sun_path, "control", sizeof(saddr.sun_path) - 1);
+	if (bind(ctlsock, (struct sockaddr *) &saddr, sizeof(saddr)) < 0) {
+#else
 	on = 1;
 	if (setsockopt(ctlsock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on))
 	    < 0) {
@@ -112,11 +130,21 @@ dhcp6_ctl_init(addr, port, max, sockp)
 		goto fail;
 	}
 	if (bind(ctlsock, res->ai_addr, res->ai_addrlen) < 0) {
+#endif
 		dprintf(LOG_ERR, FNAME, "bind(control sock): %s",
 		    strerror(errno));
 		goto fail;
 	}
+#ifdef __ANDROID__
+    // connecting requires rx permissions of parent directories so we're fine
+    if (chmod("control", 0777) < 0) {
+	    dprintf(LOG_ERR, FNAME, "chmod(control sock): %s",
+            strerror(errno));
+	    goto fail;
+	}
+#else
 	freeaddrinfo(res);
+#endif
 	if (listen(ctlsock, 1)) {
 		dprintf(LOG_ERR, FNAME, "listen(control sock): %s",
 		    strerror(errno));
@@ -136,8 +164,10 @@ dhcp6_ctl_init(addr, port, max, sockp)
 	return (0);
 
   fail:
+#ifndef __ANDROID__
 	if (res != NULL)
 		freeaddrinfo(res);
+#endif
 	if  (ctlsock >= 0)
 		close(ctlsock);
 
@@ -220,8 +250,10 @@ dhcp6_ctl_acceptcommand(sl, callback)
 		return (-1);
 	}
 
+#ifndef __ANDROID__
 	dprintf(LOG_DEBUG, FNAME, "accept control connection from %s",
 	    addr2str(from));
+#endif
 
 	if (max_commands <= 0) {
 		dprintf(LOG_ERR, FNAME, "command queue is not initialized");

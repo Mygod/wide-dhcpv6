@@ -43,6 +43,11 @@
 
 #include <netinet/in.h>
 
+#ifdef __ANDROID__
+#include <sys/socket.h>
+#include <sys/un.h>
+#endif
+
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -147,8 +152,10 @@ main(argc, argv)
 
 	memset(&key, 0, sizeof(key));
 	digestlen = 0;
+#ifndef __ANDROID__
 	if (setup_auth(keyfile, &key, &digestlen) != 0)
 		errx(1, "failed to setup message authentication");
+#endif
 
 	if ((passed = make_command(argc, argv, &cbuf, &clen,
 	    &key, digestlen)) < 0) {
@@ -159,6 +166,19 @@ main(argc, argv)
 	if (argc != 0)
 		warnx("redundant command argument after \"%s\"", argv[0]);
 
+#ifdef __ANDROID__
+	s = socket(AF_UNIX, SOCK_STREAM, 0);
+	if (s < 0) warn("socket"); else {
+		struct sockaddr_un saddr;
+		memset(&saddr, 0, sizeof(saddr));
+		saddr.sun_family = AF_UNIX;
+		strncpy(saddr.sun_path, "control", sizeof(saddr.sun_path) - 1);
+		if (connect(s, (struct sockaddr *) &saddr, sizeof(saddr)) < 0) {
+			warn("connect");
+			s = -1;
+		}
+	}
+#else
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_INET6;
 	hints.ai_socktype = SOCK_STREAM;
@@ -183,6 +203,7 @@ main(argc, argv)
 		break;
 	}
 	freeaddrinfo(res0);
+#endif
 	if (s < 0) {
 		warnx("failed to connect to the %s",
 		    ctltype == CTLCLIENT ? "client" : "server");
@@ -390,6 +411,7 @@ make_command(argc, argv, bufp, lenp, key, authlen)
 
 	memcpy(commandbuf, &ctl, sizeof(ctl));
 
+#ifndef __ANDROID__
 	mac = commandbuf + sizeof(ctl);
 	memset(mac, 0, authlen);
 	if (dhcp6_calc_mac(commandbuf, len, DHCP6CTL_AUTHPROTO_UNDEF,
@@ -397,6 +419,7 @@ make_command(argc, argv, bufp, lenp, key, authlen)
 		warnx("failed to calculate MAC");
 		return (-1);
 	}
+#endif
 
 	if ((buf = malloc(len)) == NULL) {
 		warn("memory allocation failed");
