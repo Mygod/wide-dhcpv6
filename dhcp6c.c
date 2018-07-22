@@ -291,9 +291,8 @@ client6_init()
 	}
 	if (setsockopt(sock, SOL_SOCKET, SO_REUSEPORT,
 		       &on, sizeof(on)) < 0) {
-		dprintf(LOG_ERR, FNAME,
+		dprintf(LOG_WARNING, FNAME,
 		    "setsockopt(SO_REUSEPORT): %s", strerror(errno));
-		exit(1);
 	}
 #ifdef IPV6_RECVPKTINFO
 	if (setsockopt(sock, IPPROTO_IPV6, IPV6_RECVPKTINFO, &on,
