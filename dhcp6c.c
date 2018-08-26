@@ -238,6 +238,9 @@ main(argc, argv)
 	}
 
 	client6_startall(0);
+#ifdef __ANDROID__
+	fcntl(STDIN_FILENO, F_SETFL, fcntl(STDIN_FILENO, F_GETFL, 0) | O_NONBLOCK);
+#endif
 	client6_mainloop();
 	exit(0);
 }
@@ -522,6 +525,20 @@ client6_mainloop()
 	while(1) {
 		if (sig_flags)
 			process_signals();
+
+#ifdef __ANDROID__
+        {
+            char buffer[1024];
+            ssize_t last;
+            while ((last = read(STDIN_FILENO, buffer, 1024)) > 0);  // discard all inputs
+            if (last == 0) {                                        // eof means parent process has gone, kill self
+                exit_ok = 1;
+                free_resources(NULL);
+                unlink(pid_file);
+                check_exit();
+            }
+        }
+#endif
 
 		w = dhcp6_check_timer();
 
