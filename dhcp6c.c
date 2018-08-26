@@ -758,9 +758,9 @@ client6_ifctl(ifname, command)
 {
 	struct dhcp6_if *ifp;
 
-	if ((ifp = find_ifconfbyname(ifname)) == NULL) {
+	if ((ifp = find_ifconfbyname(ifname)) == NULL && (ifp = ifinit(ifname)) == NULL) {
 		dprintf(LOG_INFO, FNAME,
-		    "failed to find interface configuration for %s",
+		    "failed to initialize interface for %s",
 		    ifname);
 		return (-1);
 	}
