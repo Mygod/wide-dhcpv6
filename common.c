@@ -1011,6 +1011,9 @@ get_duid(idfile, duid)
 			goto fail;
 		}
 	} else {
+#ifdef __ANDROID__
+	    goto fail;
+#else
 		int l;
 
 		if ((l = gethwid(tmpbuf, sizeof(tmpbuf), NULL, &hwtype)) < 0) {
@@ -1019,6 +1022,7 @@ get_duid(idfile, duid)
 			goto fail;
 		}
 		len = l + sizeof(struct dhcp6opt_duid_type1);
+#endif
 	}
 
 	memset(duid, 0, sizeof(*duid));
