@@ -768,6 +768,12 @@ client6_reload()
 	return;
 }
 
+struct dhcp6_if * ifreinit(char *ifname) {
+	struct dhcp6_if *result = ifinit(ifname);
+	client6_reload();
+	return result;
+}
+
 static int
 client6_ifctl(ifname, command)
 	char *ifname;
@@ -775,7 +781,7 @@ client6_ifctl(ifname, command)
 {
 	struct dhcp6_if *ifp;
 
-	if ((ifp = find_ifconfbyname(ifname)) == NULL && (ifp = ifinit(ifname)) == NULL) {
+	if ((ifp = find_ifconfbyname(ifname)) == NULL && (ifp = ifreinit(ifname)) == NULL) {
 		dprintf(LOG_INFO, FNAME,
 		    "failed to initialize interface for %s",
 		    ifname);
