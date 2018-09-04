@@ -235,6 +235,9 @@ main(argc, argv)
 	if ((pidfp = fopen(pid_file, "w")) != NULL) {
 		fprintf(pidfp, "%d\n", pid);
 		fclose(pidfp);
+	} else if (strcmp(pid_file, DHCP6C_PIDFILE) != 0) {
+	    dprintf(LOG_ERR, FNAME, "failed to open pid file");
+	    exit(1);
 	}
 
 	client6_startall(0);
