@@ -1057,7 +1057,7 @@ get_duid(idfile, duid)
 	if (!fp) {
 		if ((fp = fopen(idfile, "w+")) == NULL) {
 			dprintf(LOG_ERR, FNAME,
-			    "failed to open DUID file for save");
+			    "failed to open DUID file for save: %s", strerror(errno));
 			goto fail;
 		}
 		if ((fwrite(&len, sizeof(len), 1, fp)) != 1) {
