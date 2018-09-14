@@ -1043,6 +1043,7 @@ construct_reqdata(ifp, optinfo, ev)
 
 	if (optinfo == NULL)
 		return (0);
+	int miss = 1;
 
 	for (iac = TAILQ_FIRST(&ifp->iaconf_list); iac;
 	    iac = TAILQ_NEXT(iac, link)) {
@@ -1081,6 +1082,7 @@ construct_reqdata(ifp, optinfo, ev)
 			evd->event = ev;
 			evd->destructor = destruct_iadata;
 			TAILQ_INSERT_TAIL(&ev->data_list, evd, link);
+			miss = 0;
 			break;
 		case IATYPE_NA:
 			if ((v = dhcp6_find_listval(&optinfo->iana_list,
@@ -1104,6 +1106,7 @@ construct_reqdata(ifp, optinfo, ev)
 			evd->event = ev;
 			evd->destructor = destruct_iadata;
 			TAILQ_INSERT_TAIL(&ev->data_list, evd, link);
+			miss = 0;
 			break;
 		default:
 			dprintf(LOG_ERR, FNAME, "internal error");
@@ -1111,7 +1114,7 @@ construct_reqdata(ifp, optinfo, ev)
 		}
 	}
 
-	return (0);
+	return (miss);
 
   fail:
 	if (evd)
