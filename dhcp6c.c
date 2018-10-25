@@ -480,6 +480,7 @@ free_resources(freeifp)
 static void
 check_exit()
 {
+#ifndef __ANDROID__
 	struct dhcp6_if *ifp;
 
 	if (!exit_ok)
@@ -493,6 +494,7 @@ check_exit()
 		if (!TAILQ_EMPTY(&ifp->event_list))
 			return;
 	}
+#endif
 
 	/* We have no existing event.  Do exit. */
 	dprintf(LOG_INFO, FNAME, "exiting");
