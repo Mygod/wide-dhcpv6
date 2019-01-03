@@ -80,7 +80,6 @@ struct ia {
 static int update_authparam __P((struct ia *, struct authparam *));
 static void reestablish_ia __P((struct ia *));
 static void callback __P((struct ia *));
-static int release_ia __P((struct ia *));
 static void remove_ia __P((struct ia *));
 static struct ia *get_ia __P((iatype_t, struct dhcp6_if *, struct ia_conf *,
     struct dhcp6_listval *, struct duid *));
@@ -419,91 +418,9 @@ release_all_ia(ifp)
 	    iac = TAILQ_NEXT(iac, link)) {
 		for (ia = TAILQ_FIRST(&iac->iadata); ia; ia = ia_next) {
 			ia_next = TAILQ_NEXT(ia, link);
-
-			(void)release_ia(ia);
-
-			/*
-			 * The client MUST stop using all of the addresses
-			 * being released as soon as the client begins the
-			 * Release message exchange process.
-			 * [RFC3315 Section 18.1.6]
-			 */
 			remove_ia(ia);
 		}
 	}
-}
-
-static int
-release_ia(ia)
-	struct ia *ia;
-{
-	struct dhcp6_ia iaparam;
-	struct dhcp6_event *ev;
-	struct dhcp6_eventdata *evd;
-
-	dprintf(LOG_DEBUG, FNAME, "release an IA: %s-%lu",
-	    iastr(ia->conf->type), ia->conf->iaid);
-
-	if ((ev = dhcp6_create_event(ia->ifp, DHCP6S_RELEASE))
-	    == NULL) {
-		dprintf(LOG_NOTICE, FNAME, "failed to create a new event");
-		goto fail;
-	}
-	TAILQ_INSERT_TAIL(&ia->ifp->event_list, ev, link);
-
-
-	if ((ev->timer = dhcp6_add_timer(client6_timo, ev)) == NULL) {
-		dprintf(LOG_NOTICE, FNAME,
-		    "failed to create a new event timer");
-		goto fail;
-	}
-
-	if (duidcpy(&ev->serverid, &ia->serverid)) {
-		dprintf(LOG_NOTICE, FNAME, "failed to copy server ID");
-		goto fail;
-	}
-
-	if ((evd = malloc(sizeof(*evd))) == NULL) {
-		dprintf(LOG_NOTICE, FNAME,
-		    "failed to create a new event data");
-		goto fail;
-	}
-	memset(evd, 0, sizeof(*evd));
-	iaparam.iaid = ia->conf->iaid;
-	/* XXX: should we set T1/T2 to 0?  spec is silent on this. */
-	iaparam.t1 = ia->t1;
-	iaparam.t2 = ia->t2;
-
-	if (ia->ctl && ia->ctl->release_data) {
-		if ((*ia->ctl->release_data)(ia->ctl, &iaparam, NULL, evd)) {
-			dprintf(LOG_NOTICE, FNAME,
-			    "failed to make release data");
-			goto fail;
-		}
-	}
-	TAILQ_INSERT_TAIL(&ev->data_list, evd, link);
-
-	ev->timeouts = 0;
-	dhcp6_set_timeoparam(ev);
-	dhcp6_reset_timer(ev);
-
-	if (ia->authparam != NULL) {
-		if ((ev->authparam = copy_authparam(ia->authparam)) == NULL) {
-			dprintf(LOG_WARNING, FNAME,
-			    "failed to copy authparam");
-			goto fail;
-		}
-	}
-
-	client6_send(ev);
-
-	return (0);
-
-  fail:
-	if (ev)
-		dhcp6_remove_event(ev);
-
-	return (-1);
 }
 
 static void
